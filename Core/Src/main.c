@@ -107,7 +107,7 @@ int main(void)
 		volatile short encoder_cnt =0, encoder_pre_cnt = 0, encoder_offset = 0;
 		float round_per_min = 0;
 		int speed = 0;
-
+		uint8_t arr[] = "\rhello\n";
 	  uint32_t axis_angle = 0;
 	  uint32_t desired_value = 0;
   /* USER CODE END 1 */
@@ -135,8 +135,9 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1 | TIM_CHANNEL_2);
-	HAL_UART_Transmit(&huart1, "hello", 6, 100);
+	HAL_UART_Transmit(&huart1,arr,sizeof(arr), 100);
   HAL_UART_Receive_IT(&huart1, buff, 3);
+	__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,0);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -155,15 +156,21 @@ int main(void)
     /*PWM*/
 			HAL_TIM_PWM_Start (&htim1, TIM_CHANNEL_2);
 		/*1300 ~ 360 degree*/
+		if (desired_value != 0)
+		{
 				if(encoder_cnt > desired_value)
 				{
 					encoder_pre_cnt = encoder_cnt;
+
 					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,0);
+					desired_value = 0;
+					__HAL_TIM_SET_COUNTER(&htim2, 0);
 				}
 				else
 				{
 					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,50);
 				}
+		}
     /**/
 
 		encoder_cnt =  __HAL_TIM_GET_COUNTER(&htim2);
