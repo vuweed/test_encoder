@@ -156,11 +156,18 @@ int main(void)
 		}
     /*PWM*/
 		desired_value = 49;
-			HAL_TIM_PWM_Start (&htim1, TIM_CHANNEL_1);
-//			for(int pwm = 0; pwm < desired_value; pwm++)
-//			{
-					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,50);
-					HAL_Delay(100);
+			HAL_TIM_PWM_Start (&htim1, TIM_CHANNEL_2);
+
+		/*1300 ~ 360 degree*/
+				if(encoder_cnt > 1300)
+				{
+					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,0);
+				}
+				else
+				{
+					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,50);
+//					HAL_Delay(100);
+				}
 //			}
 //			HAL_TIM_PWM_Start (&htim1, TIM_CHANNEL_2);
 //			for(int pwm = 0; pwm < desired_value; pwm++)
