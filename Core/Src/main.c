@@ -104,7 +104,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-		volatile short encoder_cnt =0, encoder_pre_cnt = 0, rate_sec = 0;
+		volatile short encoder_cnt =0, encoder_pre_cnt = 0, encoder_offset = 0;
 		float round_per_min = 0;
 		int speed = 0;
 
@@ -146,43 +146,32 @@ int main(void)
 		if(buff[0] != '\0')
 		{
 			HAL_UART_Transmit(&huart1, buff, 3, 1000);
-			axis_angle++;
 			axis_angle = stringToDec(&buff[0], 3);
-			/*56 = 180 deg */
+			/*1300 = 360 deg */
 	   	/*desired_value ~ axis_angle */
-			desired_value = (uint32_t)(axis_angle * 0.311111111);
-
+			desired_value = (uint32_t)(axis_angle * 3.61111111111);
 			memset(buff, 0, 50);
 		}
     /*PWM*/
-		desired_value = 49;
 			HAL_TIM_PWM_Start (&htim1, TIM_CHANNEL_2);
-
 		/*1300 ~ 360 degree*/
-				if(encoder_cnt > 1300)
+				if(encoder_cnt > desired_value)
 				{
+					encoder_pre_cnt = encoder_cnt;
 					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,0);
 				}
 				else
 				{
 					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,50);
-//					HAL_Delay(100);
 				}
-//			}
-//			HAL_TIM_PWM_Start (&htim1, TIM_CHANNEL_2);
-//			for(int pwm = 0; pwm < desired_value; pwm++)
-//			{
-//					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,pwm);
-//					HAL_Delay(100);
-//			}
     /**/
 
 		encoder_cnt =  __HAL_TIM_GET_COUNTER(&htim2);
 
-		rate_sec = abs(encoder_cnt - encoder_pre_cnt); //number of pulses / sec
-		encoder_pre_cnt = encoder_cnt;
-   	round_per_min = (rate_sec+30);//(rate_sec/ 374)*60;0.160427807
-		speed = rate_sec * 12.5;
+//		rate_sec = abs(encoder_cnt - encoder_pre_cnt); //number of pulses / sec
+//		encoder_pre_cnt = encoder_cnt;
+//   	round_per_min = (rate_sec+30);//(rate_sec/ 374)*60;0.160427807
+//		speed = rate_sec * 12.5;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
