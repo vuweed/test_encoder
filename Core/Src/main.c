@@ -107,7 +107,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-		volatile short encoder_cnt =0, encoder_cnt1 = 0, encoder_pre_cnt = 0, encoder_offset = 0;
+		volatile short encoder_cnt =0, encoder_cnt1 = 0, encoder_cnt2 = 0, encoder_pre_cnt = 0, encoder_offset = 0;
 		float round_per_min = 0;
 		int speed = 0;
 		uint8_t arr[] = "\rhello\n";
@@ -138,11 +138,12 @@ int main(void)
   MX_USART1_UART_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+//  HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_1 | TIM_CHANNEL_2);
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1 | TIM_CHANNEL_2);
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_1 | TIM_CHANNEL_2);
 	HAL_UART_Transmit(&huart1,arr,sizeof(arr), 100);
   HAL_UART_Receive_IT(&huart1, buff, 3);
-	__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,0);
+//	__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,0);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -159,27 +160,28 @@ int main(void)
 			memset(buff, 0, 50);
 		}
     /*PWM*/
-			HAL_TIM_PWM_Start (&htim1, TIM_CHANNEL_2);
-		/*1300 ~ 360 degree*/
-		if (desired_value != 0)
-		{
-				if(encoder_cnt > desired_value)
-				{
-					encoder_pre_cnt = encoder_cnt;
+//			HAL_TIM_PWM_Start (&htim1, TIM_CHANNEL_2);
+//		/*1300 ~ 360 degree*/
+//		if (desired_value != 0)
+//		{
+//				if(encoder_cnt > desired_value)
+//				{
+//					encoder_pre_cnt = encoder_cnt;
 
-					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,0);
-					desired_value = 0;
-					__HAL_TIM_SET_COUNTER(&htim2, 0);
-				}
-				else
-				{
-					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,50);
-				}
-		}
+//					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,0);
+//					desired_value = 0;
+//					__HAL_TIM_SET_COUNTER(&htim2, 0);
+//				}
+//				else
+//				{
+//					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,50);
+//				}
+//		}
     /**/
 
 		encoder_cnt =  __HAL_TIM_GET_COUNTER(&htim2);
 		encoder_cnt1 =  __HAL_TIM_GET_COUNTER(&htim3);
+//		encoder_cnt2 = __HAL_TIM_GET_COUNTER(&htim1);
 //		rate_sec = abs(encoder_cnt - encoder_pre_cnt); //number of pulses / sec
 //		encoder_pre_cnt = encoder_cnt;
 //   	round_per_min = (rate_sec+30);//(rate_sec/ 374)*60;0.160427807
@@ -242,21 +244,29 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 0 */
 
+  TIM_Encoder_InitTypeDef sConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
-  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
 
   /* USER CODE BEGIN TIM1_Init 1 */
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 719;
+  htim1.Init.Prescaler = 0;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 999;
+  htim1.Init.Period = 65535;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC1Filter = 0;
+  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC2Filter = 0;
+  if (HAL_TIM_Encoder_Init(&htim1, &sConfig) != HAL_OK)
   {
     Error_Handler();
   }
@@ -266,32 +276,9 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
-  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
-  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
-  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-  sBreakDeadTimeConfig.DeadTime = 0;
-  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
-  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
-  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
-  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN TIM1_Init 2 */
 
   /* USER CODE END TIM1_Init 2 */
-  HAL_TIM_MspPostInit(&htim1);
 
 }
 
