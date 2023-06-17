@@ -62,16 +62,16 @@ M_axis_t axis1 = {0};
 M_axis_t axis2 = {0};
 M_axis_t axis3 = {0};
 M_axis_t axis4 = {0};
-uint32_t counter2 = 0;
 
+uint32_t counter1 = 0;
+uint32_t counter2 = 0;
 uint32_t counter3 = 0;
 uint32_t counter4 = 0;
-uint32_t counter5 = 0;
 
+int16_t count1 = 0;
 int16_t count2 = 0;
 int16_t count3 = 0;
 int16_t count4 = 0;
-int16_t count5 = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -114,7 +114,10 @@ static uint32_t stringToDec(char *data, int size)
     }
     return decNum;
 }
-
+static void pwm_handler(TIM_HandleTypeDef *htim, M_axis_t *axis, uint8_t axis_num, uint16_t encoder_val)
+{
+	uint16_t axis_pin_num = 0;
+	/*PB12,13,14,15*/
 /*PWM*/
 //			HAL_TIM_PWM_Start (&htim1, TIM_CHANNEL_2);
 //		/*1300 ~ 360 degree*/
@@ -133,9 +136,49 @@ static uint32_t stringToDec(char *data, int size)
 //					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,50);
 //				}
 //		}
+	switch (axis_num) {
+		case 1:
+			axis_pin_num = GPIO_PIN_12;
+			break;
+		case 2:
+			axis_pin_num = GPIO_PIN_13;
+			break;
+		case 3:
+			axis_pin_num = GPIO_PIN_14;
+			break;
+		case 4:
+			axis_pin_num = GPIO_PIN_15;
+			break;
+		default:
+			break;
+	}
+
+	HAL_GPIO_WritePin(GPIOB, axis_pin_num, SET);
+
+	/*1300 ~ 360 degree*/
+	if (axis->desired_value != 0)
+	{
+			if(encoder_val > axis->desired_value)
+			{
+//				encoder_pre_cnt = encoder_cnt;
+
+				HAL_GPIO_WritePin(GPIOB,axis_pin_num, RESET);
+				axis->desired_value = 0;
+				__HAL_TIM_SET_COUNTER(htim, 0);
+			}
+			else
+			{
+				HAL_GPIO_WritePin(GPIOB,axis_pin_num, SET);
+			}
+	}
+}
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
-	if(htim == &htim2){
+	if(htim == &htim1){
+			counter1 = __HAL_TIM_GET_COUNTER(htim);
+			count1 = (int16_t)counter1;
+		}
+	else if(htim == &htim2){
 		counter2 = __HAL_TIM_GET_COUNTER(htim);
 		count2 = (int16_t)counter2;
 	}
@@ -143,17 +186,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 			counter3 = __HAL_TIM_GET_COUNTER(htim);
 			count3 = (int16_t)counter3;
 		}
-//	else if(htim == &htim1){
-//			counter4 = __HAL_TIM_GET_COUNTER(htim);
-//			count4 = (int16_t)counter4;
-//		}
 	else if(htim == &htim4){
 			counter4 = __HAL_TIM_GET_COUNTER(htim);
 			count4 = (int16_t)counter4;
-		}
-	else if(htim == &htim1){
-			counter5 = __HAL_TIM_GET_COUNTER(htim);
-			count5 = (int16_t)counter5;
 		}
 
 }
@@ -178,10 +213,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-		volatile short encoder_cnt =0, encoder_cnt1 = 0, encoder_cnt2 = 0, encoder_pre_cnt = 0, encoder_offset = 0;
-		uint8_t arr[] = "\rhello\n";
-	  uint32_t axis_angle = 0;
-	  uint32_t desired_value = 0;
+	volatile short encoder_cnt =0, encoder_cnt1 = 0, encoder_cnt2 = 0, encoder_pre_cnt = 0, encoder_offset = 0;
+	uint8_t arr[] = "\rhello\n";
+	uint32_t axis_angle = 0;
+	uint32_t desired_value = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -218,6 +253,7 @@ int main(void)
 //  idx++;
 //	__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,0);
   /* USER CODE END 2 */
+//	HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, RESET);
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -264,15 +300,39 @@ int main(void)
 //					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,50);
 //				}
 //		}
-    /**/
 
-		encoder_cnt =  __HAL_TIM_GET_COUNTER(&htim2);
-		encoder_cnt1 =  __HAL_TIM_GET_COUNTER(&htim3);
-		encoder_cnt2 = __HAL_TIM_GET_COUNTER(&htim1);
-//		rate_sec = abs(encoder_cnt - encoder_pre_cnt); //number of pulses / sec
-//		encoder_pre_cnt = encoder_cnt;
-//   	round_per_min = (rate_sec+30);//(rate_sec/ 374)*60;0.160427807
-//		speed = rate_sec * 12.5;
+//		pwm_handler(&htim1, &axis1, 1, count1);
+//		if(axis2.angle)
+//		{
+//			pwm_handler(&htim2, &axis2, 2, count2);
+//		}
+
+		if(axis2.angle > 0)
+		{
+			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, SET);
+		/*1300 ~ 360 degree*/
+			if (axis2.desired_value != 0)
+			{
+					if(count2 > axis2.desired_value)
+					{
+		//				encoder_pre_cnt = encoder_cnt;
+
+						HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, RESET);
+						axis2.desired_value = 0;
+						__HAL_TIM_SET_COUNTER(&htim2, 0);
+					}
+					else
+					{
+						HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, SET);
+					}
+			}
+		}
+//		pwm_handler(&htim3, &axis3, count3);
+//		pwm_handler(&htim3, &axis4, count4);
+//		encoder_cnt =  __HAL_TIM_GET_COUNTER(&htim2);
+//		encoder_cnt1 =  __HAL_TIM_GET_COUNTER(&htim3);
+//		encoder_cnt2 = __HAL_TIM_GET_COUNTER(&htim1);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -592,12 +652,23 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB12 PB13 PB14 PB15 */
   GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
