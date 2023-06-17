@@ -38,3 +38,7 @@ STM32CubeIDE/Debug/Application/User/Core/sysmem.su
 STM32CubeIDE/Debug/Application/User/Startup/startup_stm32f103c8tx.d
 STM32CubeIDE/Debug/Application/User/Startup/startup_stm32f103c8tx.o
 STM32CubeIDE/Debug/Application/User/Startup/subdir.mk
+.mxproject
+STM32CubeIDE/.cproject
+STM32CubeIDE/STM32F103C8TX_FLASH.ld
+STM32CubeIDE/.settings/com.st.stm32cube.ide.mcu.sfrview.prefs

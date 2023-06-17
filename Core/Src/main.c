@@ -26,13 +26,19 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef struct
+{
+	uint16_t pwm;
+	uint16_t angle;
+	uint32_t desired_value;
+}M_axis_t;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define NUM_OFFSET                                   (48U)
 #define LETTER_OFFSET                                (55U)
+#define FRAME_SIZE                                   (26U)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -52,6 +58,20 @@ UART_HandleTypeDef huart3;
 /* USER CODE BEGIN PV */
 uint8_t buff[50];
 int idx = 0;
+M_axis_t axis1 = {0};
+M_axis_t axis2 = {0};
+M_axis_t axis3 = {0};
+M_axis_t axis4 = {0};
+uint32_t counter2 = 0;
+
+uint32_t counter3 = 0;
+uint32_t counter4 = 0;
+uint32_t counter5 = 0;
+
+int16_t count2 = 0;
+int16_t count3 = 0;
+int16_t count4 = 0;
+int16_t count5 = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -94,17 +114,25 @@ static uint32_t stringToDec(char *data, int size)
     }
     return decNum;
 }
-uint32_t counter2 = 0;
 
-uint32_t counter3 = 0;
-uint32_t counter4 = 0;
-uint32_t counter5 = 0;
+/*PWM*/
+//			HAL_TIM_PWM_Start (&htim1, TIM_CHANNEL_2);
+//		/*1300 ~ 360 degree*/
+//		if (desired_value != 0)
+//		{
+//				if(encoder_cnt > desired_value)
+//				{
+//					encoder_pre_cnt = encoder_cnt;
 
-int16_t count2 = 0;
-int16_t count3 = 0;
-int16_t count4 = 0;
-int16_t count5 = 0;
-
+//					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,0);
+//					desired_value = 0;
+//					__HAL_TIM_SET_COUNTER(&htim2, 0);
+//				}
+//				else
+//				{
+//					__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,50);
+//				}
+//		}
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim == &htim2){
@@ -136,26 +164,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 	if(huart->Instance == huart3.Instance)
 	{
-//		if(0 == idx)
-//		{
-//			HAL_UART_Receive_IT(&huart3, buff + idx, 1);
-//			idx++;
-//		}
-//		else
-//		{
-//			HAL_UART_Receive_IT(&huart3, buff + idx, 1);
-//		}
-//
-		HAL_UART_Receive_IT(&huart3, buff, 3);
-		HAL_UART_Transmit(&huart3, buff, 3, 100);
-//		idx++;
-//		if(idx >= 3)
-//		{
-//			HAL_UART_Transmit(&huart3, buff, 3, 100);
-//			memset(buff, 0, sizeof(buff));
-//			idx = 0;
-//		}
-//		HAL_UART_Transmit(&huart2, buff, 3, 100);
+
+		HAL_UART_Receive_IT(&huart3, buff, FRAME_SIZE);
+
 	}
 }
 /* USER CODE END 0 */
@@ -168,8 +179,6 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 		volatile short encoder_cnt =0, encoder_cnt1 = 0, encoder_cnt2 = 0, encoder_pre_cnt = 0, encoder_offset = 0;
-//		float round_per_min = 0;
-//		int speed = 0;
 		uint8_t arr[] = "\rhello\n";
 	  uint32_t axis_angle = 0;
 	  uint32_t desired_value = 0;
@@ -204,11 +213,8 @@ int main(void)
 	HAL_TIM_Encoder_Start_IT(&htim2, TIM_CHANNEL_1 | TIM_CHANNEL_2);
 	HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_1 | TIM_CHANNEL_2);
 	HAL_TIM_Encoder_Start_IT(&htim4, TIM_CHANNEL_1 | TIM_CHANNEL_2);
-//  HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_1 | TIM_CHANNEL_2);
-//  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1 | TIM_CHANNEL_2);
-//  HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_1 | TIM_CHANNEL_2);
 	HAL_UART_Transmit(&huart3,arr,sizeof(arr), 100);
-  HAL_UART_Receive_IT(&huart3, buff, 3);
+	HAL_UART_Receive_IT(&huart3, buff, FRAME_SIZE);
 //  idx++;
 //	__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,0);
   /* USER CODE END 2 */
@@ -217,15 +223,29 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//		if(buff[0] != '\0')
-//		{
-////			HAL_UART_Transmit(&huart2, buff, 3, 10);
-//			axis_angle = stringToDec((char*)&buff[0], 3);
-//			/*1300 = 360 deg */
-//	   	/*desired_value ~ axis_angle */
+	    /*Receive and parse frame*/
+		if((0xAB == buff[0]) && (0xFF == buff[FRAME_SIZE - 1]) )
+		{
+			axis1.pwm = stringToDec((char*)buff + 1, 3);
+			axis1.angle = stringToDec((char*)buff + 4, 3);
+			axis1.desired_value = (uint32_t)(axis1.angle * 3.61111111111);
+
+			axis2.pwm = stringToDec((char*)buff + 7, 3);
+			axis2.angle = stringToDec((char*)buff + 10, 3);
+			axis2.desired_value = (uint32_t)(axis2.angle * 3.61111111111);
+
+			axis3.pwm = stringToDec((char*)buff + 13, 3);
+			axis3.angle = stringToDec((char*)buff + 16, 3);
+			axis3.desired_value = (uint32_t)(axis3.angle * 3.61111111111);
+
+			axis4.pwm = stringToDec((char*)buff + 19, 3);
+			axis4.angle = stringToDec((char*)buff + 22, 3);
+			axis4.desired_value = (uint32_t)(axis4.angle * 3.61111111111);
+			/*1300 = 360 deg */
+	   	/*desired_value ~ axis_angle */
 //			desired_value = (uint32_t)(axis_angle * 3.61111111111);
-//			memset(buff, 0, 50);
-//		}
+			memset(buff, 0, 50);
+		}
     /*PWM*/
 //			HAL_TIM_PWM_Start (&htim1, TIM_CHANNEL_2);
 //		/*1300 ~ 360 degree*/
@@ -569,11 +589,22 @@ static void MX_USART3_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PB12 PB13 PB14 PB15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }
 
